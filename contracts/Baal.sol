@@ -311,6 +311,8 @@ contract Baal is Module, EIP712, ReentrancyGuard {
         uint256 baalGas,
         string calldata details
     ) external payable nonReentrant returns (uint256) {
+        require(sharesToken.getCurrentVotesGov(msg.sender) >= sponsorThreshold, "!sponsor"); /*check 'proposal initiator have gov-s NFTs - required to sponsor proposal*/
+
         require(
             expiration == 0 ||
                 expiration > block.timestamp + votingPeriod + gracePeriod,
@@ -375,6 +377,8 @@ contract Baal is Module, EIP712, ReentrancyGuard {
         Proposal storage prop = proposals[id]; /*alias proposal storage pointers*/
 
         require(sharesToken.getCurrentVotes(msg.sender) >= sponsorThreshold, "!sponsor"); /*check 'votes > threshold - required to sponsor proposal*/
+        require(sharesToken.getCurrentVotesGov(msg.sender) >= sponsorThreshold, "!sponsor"); /*check 'voter have gov-s NFTs required to sponsor proposal*/
+
         require(state(id) == ProposalState.Submitted, "!submitted");
         require(
             prop.expiration == 0 ||

@@ -230,6 +230,19 @@ abstract contract BaalVotes is ERC20Permit {
                 : 0;
         }
     }
+        function getCurrentVotesGov(address account)
+        external
+        view
+        virtual
+        returns (uint256 votes)
+    {
+        uint256 nCheckpoints = numCheckpoints[account]; /*Get most recent checkpoint, or 0 if no checkpoints*/
+        unchecked {
+            votes = nCheckpoints != 0
+                ? getCheckpoint(account, nCheckpoints - 1).votes
+                : 0;
+        }
+    }
 
     function getCheckpoint(address delegatee, uint256 nCheckpoints)
         public

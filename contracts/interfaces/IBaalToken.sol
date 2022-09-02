@@ -30,4 +30,6 @@ interface IBaalToken {
         returns (Checkpoint memory);
 
     function getCurrentVotes(address account) external view returns(uint256);
+    function getCurrentVotesGov(address account) external view returns(uint256);
+
 }
