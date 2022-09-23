@@ -1,7 +1,8 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
-interface IBaalToken {
+interface IBaalToken is IERC1155{
     function name() external view returns (string memory);
 
     function setUp(string memory _name, string memory _symbol) external;

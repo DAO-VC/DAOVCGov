@@ -29,6 +29,7 @@ contract Baal is Module, EIP712, ReentrancyGuard {
 
     IBaalToken public lootToken; /*Sub ERC20 for loot mgmt*/
     IBaalToken public sharesToken; /*Sub ERC20 for loot mgmt*/
+    IBaalToken public voteNFTGov;  /*NFT collection address for voting  */
 
     address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; /*ETH reference for redemptions*/
 
@@ -65,6 +66,8 @@ contract Baal is Module, EIP712, ReentrancyGuard {
     // PROPOSAL TRACKING
     mapping(address => mapping(uint32 => bool)) public memberVoted; /*maps members to their proposal votes (true = voted) */
     mapping(uint256 => Proposal) public proposals; /*maps `proposal id` to struct details*/
+    mapping (uint256 => uint8) public nftVotesMul; /* IDNFT =>  multiplier  of NFT votes */
+    uint256[] nftVotesAll; /* list of all NFT for voting */
 
     // MISCELLANEOUS PARAMS
     uint32 public latestSponsoredProposalId; /* the id of the last proposal to be sponsored */
@@ -238,12 +241,14 @@ contract Baal is Module, EIP712, ReentrancyGuard {
             string memory _symbol, /*_symbol Symbol for erc20 `shares` accounting*/
             address _lootSingleton, /*template contract to clone for loot ERC20 token*/
             address _sharesSingleton, /*template contract to clone for loot ERC20 token*/
+            address _voteNFTSingleton, /*template contract to clone for loot ERC20 token*/
             address _multisendLibrary, /*address of multisend library*/
             address _avatar, /*Safe contract address*/
+            address _voteNFTGov,  /*NFT collection address for voting  */
             bytes memory _initializationMultisendData /*here you call BaalOnly functions to set up initial shares, loot, shamans, periods, etc.*/
         ) = abi.decode(
                 _initializationParams,
-                (string, string, address, address, address, address, bytes)
+                (string, string, address, address, address, address, address, address, bytes)
             );
 
         __Ownable_init();
@@ -263,6 +268,10 @@ contract Baal is Module, EIP712, ReentrancyGuard {
         require(_sharesSingleton != address(0), "!sharesSingleton");
         sharesToken = IBaalToken(Clones.clone(_sharesSingleton)); /*Clone loot singleton using EIP1167 minimal proxy pattern*/
         sharesToken.setUp(_name, _symbol);
+
+        require(_voteNFTSingleton != address(0), "!sharesNFTSingleton");
+        voteNFTGov = IBaalToken(Clones.clone(_voteNFTSingleton)); /*Clone loot singleton using EIP1167 minimal proxy pattern*/
+        voteNFTGov.setUp(_name, _symbol);
 
         multisendLibrary = _multisendLibrary; /*Set address of Gnosis multisend library to use for all execution*/
 
@@ -297,7 +306,39 @@ contract Baal is Module, EIP712, ReentrancyGuard {
         );
 
     }
+    /**
+     * @notice setup weights of NFTs for voting
+     * @param _idNFT - as is IdNFT 
+     * @param _multiplier - NFT's weight multiplier
+     */
+    function setupNFTvoteMul (uint256 _idNFT, uint8 _multiplier) public baalOrAdminOnly {
+        if (_multiplier == 0) { //delete _idNFT
+            for (uint8 i=0; i<nftVotesAll.length; i++) { 
+                if (nftVotesAll[i] == _idNFT) {
+                    nftVotesAll[i] = nftVotesAll[nftVotesAll.length - 1];
+                    delete (nftVotesAll[nftVotesAll.length - 1]);
+                    return;
+                }
+            }
+        } else if (  nftVotesMul[_idNFT] == 0) { // add new _IDNFT 
+            nftVotesMul[_idNFT] = _multiplier;
+            nftVotesAll.push (_idNFT);
+            return;
+        } else {  // update existing _idNFT
+            nftVotesMul[_idNFT] = _multiplier;
+            return;
+        }
+    }
 
+    /**
+     * @notice returns total  weights of NFTs for voter
+     * @param  _voter - as is, address of voter
+     */
+    function getNFTVotesMul (address _voter) public view returns (uint256 mul)  { 
+        for (uint8 i=0; i<nftVotesAll.length; i++) {
+            mul += nftVotesMul[nftVotesAll[i]] * voteNFTGov.balanceOf(_voter, nftVotesAll[i]);
+        }
+    }
     /*****************
     PROPOSAL FUNCTIONS
     *****************/
@@ -455,8 +496,8 @@ contract Baal is Module, EIP712, ReentrancyGuard {
     ) internal {
         Proposal storage prop = proposals[id]; /*alias proposal storage pointers*/
         require(state(id) == ProposalState.Voting, "!voting");
-
-        uint256 balance = sharesToken.getPriorVotes(voter, prop.votingStarts); /*fetch & gas-optimize voting weight at proposal creation time*/
+        
+        uint256 balance = sharesToken.getPriorVotes(voter, prop.votingStarts) * getNFTVotesMul(voter); /*fetch & gas-optimize voting weight at proposal creation time*/
 
         require(balance > 0, "!member"); /* check that user has shares*/
         require(!memberVoted[voter][id], "voted"); /*check vote not already cast*/
