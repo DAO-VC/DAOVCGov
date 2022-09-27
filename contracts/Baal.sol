@@ -145,11 +145,11 @@ contract Baal is Module, EIP712, ReentrancyGuard {
         uint256 proposalOffering,
         uint256 quorumPercent,
         uint256 sponsorThreshold,
-        uint256 minRetentionPercent,
+        uint256 minRetentionPercent/* ,
         string name,
         string symbol,
         uint256 totalShares,
-        uint256 totalLoot
+        uint256 totalLoot */
     ); /*emits after Baal summoning*/
     event SubmitProposal(
         uint256 indexed proposal,
@@ -244,11 +244,11 @@ contract Baal is Module, EIP712, ReentrancyGuard {
             address _voteNFTSingleton, /*template contract to clone for loot ERC20 token*/
             address _multisendLibrary, /*address of multisend library*/
             address _avatar, /*Safe contract address*/
-            address _voteNFTGov,  /*NFT collection address for voting  */
+   //         address _voteNFTGov,  /*NFT collection address for voting  */
             bytes memory _initializationMultisendData /*here you call BaalOnly functions to set up initial shares, loot, shamans, periods, etc.*/
         ) = abi.decode(
                 _initializationParams,
-                (string, string, address, address, address, address, address, address, bytes)
+                (string, string, address, address, address, address, address, /* address, */ bytes)
             );
 
         __Ownable_init();
@@ -298,11 +298,11 @@ contract Baal is Module, EIP712, ReentrancyGuard {
             proposalOffering,
             quorumPercent,
             sponsorThreshold,
-            minRetentionPercent,
+            minRetentionPercent/* ,
             _name,
             _symbol,
             totalShares(),
-            totalLoot()
+            totalLoot() */
         );
 
     }

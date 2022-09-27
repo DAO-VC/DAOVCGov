@@ -14,6 +14,7 @@ import {
   GnosisSafe,
   Poster,
   Shares,
+  SharesNFT
 } from '../src/types';
 import { decodeMultiAction, encodeMultiAction } from "../src/util";
 import { BigNumber } from "@ethersproject/bignumber";
@@ -188,6 +189,9 @@ describe("Tribute proposal type", function () {
   let lootSingleton: Loot;
   let LootFactory: ContractFactory;
   let sharesSingleton: Shares;
+  let sharesNFTSingleton: SharesNFT;
+  let NFTSharesFactory: ContractFactory;
+
   let SharesFactory: ContractFactory;
   let ERC20: ContractFactory;
   let lootToken: Loot;
@@ -243,6 +247,7 @@ describe("Tribute proposal type", function () {
     lootSingleton = (await LootFactory.deploy()) as Loot;
     SharesFactory = await ethers.getContractFactory("Shares");
     sharesSingleton = (await SharesFactory.deploy()) as Shares;
+    sharesNFTSingleton = (await NFTSharesFactory.deploy()) as SharesNFT;
     BaalFactory = await ethers.getContractFactory("Baal");
     baalSingleton = (await BaalFactory.deploy()) as Baal;
     Poster = await ethers.getContractFactory("Poster");
@@ -288,6 +293,7 @@ describe("Tribute proposal type", function () {
       moduleProxyFactory.address,
       lootSingleton.address,
       sharesSingleton.address,
+      sharesNFTSingleton.address,
     )) as BaalSummoner;
 
     encodedInitParams = await getBaalParams(

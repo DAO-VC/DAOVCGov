@@ -5,6 +5,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 import {
   Shares,
+  SharesNFT,
   Baal,
   BaalSummoner,
   Poster,
@@ -286,7 +287,9 @@ describe("Baal contract", function () {
   let lootSingleton: Loot;
   let LootFactory: ContractFactory;
   let sharesSingleton: Shares;
+  let sharesNFTSingleton: SharesNFT;
   let SharesFactory: ContractFactory;
+  let NFTSharesFactory: ContractFactory;
   let BaalFactory: ContractFactory;
   let Poster: ContractFactory;
   let ERC20: ContractFactory;
@@ -376,6 +379,8 @@ describe("Baal contract", function () {
     lootSingleton = (await LootFactory.deploy()) as Loot;
     SharesFactory = await ethers.getContractFactory("Shares");
     sharesSingleton = (await SharesFactory.deploy()) as Shares;
+    NFTSharesFactory = await ethers.getContractFactory("SharesNFT");
+    sharesNFTSingleton = (await NFTSharesFactory.deploy()) as SharesNFT;
     BaalFactory = await ethers.getContractFactory("Baal");
     baalSingleton = (await BaalFactory.deploy()) as Baal;
     Poster = await ethers.getContractFactory("Poster");
@@ -426,6 +431,7 @@ describe("Baal contract", function () {
       moduleProxyFactory.address,
       lootSingleton.address,
       sharesSingleton.address,
+      sharesNFTSingleton.address
     )) as BaalSummoner;
 
     encodedInitParams = await getBaalParams(
@@ -3306,7 +3312,9 @@ describe("Baal contract - offering required", function () {
   let lootToken: Loot;
 
   let sharesSingleton: Shares;
+  let sharesNFTSingleton: SharesNFT;
   let SharesFactory: ContractFactory;
+  let NFTSharesFactory: ContractFactory;
   let sharesToken: Shares;
 
   let gnosisSafeSingleton: GnosisSafe;
@@ -3331,6 +3339,7 @@ describe("Baal contract - offering required", function () {
     lootSingleton = (await LootFactory.deploy()) as Loot;
     SharesFactory = await ethers.getContractFactory("Shares");
     sharesSingleton = (await SharesFactory.deploy()) as Shares;
+    sharesNFTSingleton = (await NFTSharesFactory.deploy()) as SharesNFT;
     BaalFactory = await ethers.getContractFactory("Baal");
     baalSingleton = (await BaalFactory.deploy()) as Baal;
     Poster = await ethers.getContractFactory("Poster");
@@ -3374,6 +3383,7 @@ describe("Baal contract - offering required", function () {
       moduleProxyFactory.address,
       lootSingleton.address,
       sharesSingleton.address,
+      sharesNFTSingleton.address,
     )) as BaalSummoner;
 
     const encodedInitParams = await getBaalParams(
@@ -3610,6 +3620,8 @@ describe("Baal contract - summon baal with current safe", function () {
   let sharesSingleton: Shares;
   let SharesFactory: ContractFactory;
   let sharesToken: Shares;
+  let sharesNFTSingleton: SharesNFT;
+  let NFTSharesFactory: ContractFactory;
 
   let gnosisSafeSingleton: GnosisSafe;
 
@@ -3633,6 +3645,7 @@ describe("Baal contract - summon baal with current safe", function () {
     lootSingleton = (await LootFactory.deploy()) as Loot;
     SharesFactory = await ethers.getContractFactory("Shares");
     sharesSingleton = (await SharesFactory.deploy()) as Shares;
+    sharesNFTSingleton = (await NFTSharesFactory.deploy()) as SharesNFT;
     BaalFactory = await ethers.getContractFactory("Baal");
     baalSingleton = (await BaalFactory.deploy()) as Baal;
     Poster = await ethers.getContractFactory("Poster");
@@ -3688,6 +3701,7 @@ describe("Baal contract - summon baal with current safe", function () {
           moduleProxyFactory.address,
           lootSingleton.address,
           sharesSingleton.address,
+          sharesNFTSingleton.address,
         )) as BaalSummoner;
 
         const encodedInitParams = await getBaalParamsWithAvatar(

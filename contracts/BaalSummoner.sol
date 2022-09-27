@@ -24,6 +24,9 @@ contract BaalSummoner is ModuleProxyFactory {
     // template contract to clone for shares ERC20 token
     address public immutable sharesSingleton;
 
+    // template contract to clone for shares ERC20 token
+    address public immutable voteNFTSingleton;
+
     // Proxy summoners
     //
     GnosisSafeProxyFactory gnosisSafeProxyFactory;
@@ -45,13 +48,15 @@ contract BaalSummoner is ModuleProxyFactory {
         address _gnosisSafeProxyFactory,
         address _moduleProxyFactory,
         address _lootSingleton,
-        address _sharesSingleton
+        address _sharesSingleton, 
+        address _voteNFTSingleton
     ) {
         require(_lootSingleton != address(0), "!lootSingleton");
         require(_sharesSingleton != address(0), "!sharesSingleton");
         require(_gnosisSingleton != address(0), "!gnosisSingleton");
         template = _template;
         gnosisSingleton = _gnosisSingleton;
+        voteNFTSingleton = _voteNFTSingleton;
         gnosisFallbackLibrary = _gnosisFallbackLibrary;
         gnosisMultisendLibrary = _gnosisMultisendLibrary;
         gnosisSafeProxyFactory = GnosisSafeProxyFactory(
@@ -109,6 +114,7 @@ contract BaalSummoner is ModuleProxyFactory {
             _symbol,
             lootSingleton,
             sharesSingleton,
+            voteNFTSingleton,
             gnosisMultisendLibrary,
             _safeAddr,
             _initializationMultisendData
@@ -204,6 +210,7 @@ contract BaalSummoner is ModuleProxyFactory {
             _symbol,
             lootSingleton,
             sharesSingleton,
+            voteNFTSingleton,
             gnosisMultisendLibrary,
             _safe,
             _initializationMultisendData
