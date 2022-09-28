@@ -380,7 +380,7 @@ describe("Baal contract", function () {
     SharesFactory = await ethers.getContractFactory("Shares");
     sharesSingleton = (await SharesFactory.deploy()) as Shares;
     NFTSharesFactory = await ethers.getContractFactory("SharesNFT");
-    sharesNFTSingleton = (await NFTSharesFactory.deploy()) as SharesNFT;
+    sharesNFTSingleton = (await NFTSharesFactory.deploy("uri")) as SharesNFT;
     BaalFactory = await ethers.getContractFactory("Baal");
     baalSingleton = (await BaalFactory.deploy()) as Baal;
     Poster = await ethers.getContractFactory("Poster");
@@ -3338,8 +3338,9 @@ describe("Baal contract - offering required", function () {
     LootFactory = await ethers.getContractFactory("Loot");
     lootSingleton = (await LootFactory.deploy()) as Loot;
     SharesFactory = await ethers.getContractFactory("Shares");
+    NFTSharesFactory = await ethers.getContractFactory("SharesNFT");
     sharesSingleton = (await SharesFactory.deploy()) as Shares;
-    sharesNFTSingleton = (await NFTSharesFactory.deploy()) as SharesNFT;
+    sharesNFTSingleton = (await NFTSharesFactory.deploy("uri")) as SharesNFT;
     BaalFactory = await ethers.getContractFactory("Baal");
     baalSingleton = (await BaalFactory.deploy()) as Baal;
     Poster = await ethers.getContractFactory("Poster");
@@ -3643,9 +3644,10 @@ describe("Baal contract - summon baal with current safe", function () {
   this.beforeAll(async function () {
     LootFactory = await ethers.getContractFactory("Loot");
     lootSingleton = (await LootFactory.deploy()) as Loot;
-    SharesFactory = await ethers.getContractFactory("Shares");
+    SharesFactory = await ethers.getContractFactory("Shares");  
     sharesSingleton = (await SharesFactory.deploy()) as Shares;
-    sharesNFTSingleton = (await NFTSharesFactory.deploy()) as SharesNFT;
+    NFTSharesFactory = await ethers.getContractFactory("SharesNFT");
+    sharesNFTSingleton = (await NFTSharesFactory.deploy("uri")) as SharesNFT;
     BaalFactory = await ethers.getContractFactory("Baal");
     baalSingleton = (await BaalFactory.deploy()) as Baal;
     Poster = await ethers.getContractFactory("Poster");
