@@ -19,6 +19,7 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./interfaces/IBaalToken.sol";
+import "./interfaces/IBaalNFToken.sol";
 
 /// @title Baal ';_;'.
 /// @notice Flexible guild contract inspired by Moloch DAO framework.
@@ -29,7 +30,7 @@ contract Baal is Module, EIP712, ReentrancyGuard {
 
     IBaalToken public lootToken; /*Sub ERC20 for loot mgmt*/
     IBaalToken public sharesToken; /*Sub ERC20 for loot mgmt*/
-    IBaalToken public voteNFTGov;  /*NFT collection address for voting  */
+    IBaalNFToken public voteNFTGov;  /*NFT collection address for voting  */
 
     address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; /*ETH reference for redemptions*/
 
@@ -270,7 +271,7 @@ contract Baal is Module, EIP712, ReentrancyGuard {
         sharesToken.setUp(_name, _symbol);
 
         require(_voteNFTSingleton != address(0), "!sharesNFTSingleton");
-        voteNFTGov = IBaalToken(Clones.clone(_voteNFTSingleton)); /*Clone loot singleton using EIP1167 minimal proxy pattern*/
+        voteNFTGov = IBaalNFToken(Clones.clone(_voteNFTSingleton)); /*Clone loot singleton using EIP1167 minimal proxy pattern*/
         voteNFTGov.setUp(_name, _symbol);
 
         multisendLibrary = _multisendLibrary; /*Set address of Gnosis multisend library to use for all execution*/
@@ -352,7 +353,7 @@ contract Baal is Module, EIP712, ReentrancyGuard {
         uint256 baalGas,
         string calldata details
     ) external payable nonReentrant returns (uint256) {
-        require(sharesToken.getCurrentVotesGov(msg.sender) >= sponsorThreshold, "!sponsor"); /*check 'proposal initiator have gov-s NFTs - required to sponsor proposal*/
+  //      require(sharesToken.getCurrentVotesGov(msg.sender) >= sponsorThreshold, "!sponsor"); /*check 'proposal initiator have gov-s NFTs - required to sponsor proposal*/
 
         require(
             expiration == 0 ||
@@ -497,7 +498,7 @@ contract Baal is Module, EIP712, ReentrancyGuard {
         Proposal storage prop = proposals[id]; /*alias proposal storage pointers*/
         require(state(id) == ProposalState.Voting, "!voting");
         
-        uint256 balance = sharesToken.getPriorVotes(voter, prop.votingStarts) * getNFTVotesMul(voter); /*fetch & gas-optimize voting weight at proposal creation time*/
+        uint256 balance = voteNFTGov.getPriorVotes(voter, prop.votingStarts) * getNFTVotesMul(voter); /*fetch & gas-optimize voting weight at proposal creation time*/
 
         require(balance > 0, "!member"); /* check that user has shares*/
         require(!memberVoted[voter][id], "voted"); /*check vote not already cast*/
@@ -791,6 +792,25 @@ contract Baal is Module, EIP712, ReentrancyGuard {
     /// @param shares Amount to mint
     function _mintShares(address to, uint256 shares) private {
         sharesToken.mint(to, shares);
+    }
+
+    function mintNFTgov(
+        address[] calldata to, 
+        uint256[] calldata id, 
+        uint256[] calldata amount, 
+        bytes calldata data)
+        external
+        baalOrManagerOnly
+    {
+        require(to.length == amount.length, "!array parity"); /*check array lengths match*/
+        for (uint256 i = 0; i < to.length; i++) {
+            _mintNFTgov(to[i], id[i], amount[i], data); /*grant `to` `amount` `shares`*/
+        }
+    }
+
+
+    function _mintNFTgov(address to, uint256 id, uint256 shares, bytes calldata data) private {
+        voteNFTGov.mint(to, id, shares, data);
     }
 
     /// @notice Baal-or-manager-only function to burn shares.

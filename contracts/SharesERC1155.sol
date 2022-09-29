@@ -1,7 +1,7 @@
 pragma solidity 0.8.13;
 //SPDX-License-Identifier: MIT
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+//import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
@@ -53,20 +53,46 @@ contract SharesNFT is  ERC20, ERC1155, BaalVotes, Initializable {
     /// @notice Baal-only function to mint shares.
     /// @param recipient Address to receive shares
     /// @param amount Amount to mint
-    function mint(address recipient, uint256 amount) external baalOnly {
+
+/**
+ *  <NFTGov> ERC1155
+ */
+
+    function mint(address recipient, uint256 id, uint256 amount, bytes calldata data) external baalOnly {
         unchecked {
             if (totalSupply() + amount <= type(uint256).max / 2) {
-                _mint(recipient, amount);
+                _mint(recipient, id, amount, data);
             }
         }
     }
+    function mintBatch(
+        address to,
+        uint256[] calldata ids,
+        uint256[] calldata amounts,
+        bytes calldata data
+        ) external baalOnly {
+            _mintBatch (to, ids, amounts, data);
+        } 
 
     /// @notice Baal-only function to burn shares.
     /// @param account Address to lose shares
     /// @param amount Amount to burn
-    function burn(address account, uint256 amount) external baalOnly {
-        _burn(account, amount);
+    function burn(address account, uint256 id, uint256 amount) external baalOnly {
+        _burn(account, id, amount);
     }
+
+    function burnBatch(
+        address from,
+        uint256[] calldata ids,
+        uint256[] calldata amounts
+    ) external {
+        _burnBatch( from, ids, amounts  );
+    }
+
+/**
+ *  < /NFTGov> 
+ */
+
 
     /// @notice Internal hook to restrict token transfers unless allowed by baal
     /// @dev Allows transfers if msg.sender is Baal which enables minting and burning
