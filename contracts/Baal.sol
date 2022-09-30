@@ -312,7 +312,7 @@ contract Baal is Module, EIP712, ReentrancyGuard {
      * @param _idNFT - as is IdNFT 
      * @param _multiplier - NFT's weight multiplier
      */
-    function setupNFTvoteMul (uint256 _idNFT, uint8 _multiplier) public baalOrAdminOnly {
+    function setupNFTvotes (uint256 _idNFT, uint8 _multiplier) public baalOrAdminOnly {
         if (_multiplier == 0) { //delete _idNFT
             for (uint8 i=0; i<nftVotesAll.length; i++) { 
                 if (nftVotesAll[i] == _idNFT) {

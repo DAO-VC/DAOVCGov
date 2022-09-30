@@ -12,7 +12,7 @@ import "./interfaces/IBaal.sol";
 
 /// @title Shares
 /// @notice Accounting for Baal non voting shares
-contract SharesNFT is  ERC20, ERC1155, BaalVotes, Initializable {
+contract SharesNFT is  ERC1155, BaalVotes, Initializable {
     // ERC20 CONFIG
     string private __name; /*Name for ERC20 trackers*/
     string private __symbol; /*Symbol for ERC20 trackers*/
@@ -103,7 +103,7 @@ contract SharesNFT is  ERC20, ERC1155, BaalVotes, Initializable {
         address from,
         address to,
         uint256 amount
-    ) internal override(BaalVotes, ERC20) {
+    ) internal override(BaalVotes) {
         super._beforeTokenTransfer(from, to, amount);
         require(
             from == address(0) || /*Minting allowed*/
