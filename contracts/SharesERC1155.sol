@@ -2,17 +2,17 @@ pragma solidity 0.8.13;
 //SPDX-License-Identifier: MIT
 
 //import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-import "./utils/BaalVotes.sol";
+import "./utils/BaalNFTVotes.sol";
 import "./interfaces/IBaal.sol";
+import "./interfaces/IBaalNFToken.sol";
 
 // import "hardhat/console.sol";
 
 /// @title Shares
 /// @notice Accounting for Baal non voting shares
-contract SharesNFT is  ERC1155, BaalVotes, Initializable {
+contract SharesNFT is  IBaalNFToken, BaalNFTVotes, Initializable {
     // ERC20 CONFIG
     string private __name; /*Name for ERC20 trackers*/
     string private __symbol; /*Symbol for ERC20 trackers*/
@@ -25,7 +25,7 @@ contract SharesNFT is  ERC1155, BaalVotes, Initializable {
         _;
     }
 
-    constructor(string memory uri)  ERC20("Template", "T") ERC1155(uri) ERC20Permit("Shares") initializer {} /*Configure template to be unusable*/
+    constructor(string memory uri)  /* ERC20("Template", "T")  */ ERC1155(uri) ERC1155Permit("NFTVote") initializer {} /*Configure template to be unusable*/
 
     /// @notice Configure shares - called by Baal on summon
     /// @dev initializer should prevent this from being called again
@@ -40,15 +40,7 @@ contract SharesNFT is  ERC1155, BaalVotes, Initializable {
         __symbol = symbol_;
     }
 
-    /// @notice Returns the name of the token.
-    function name() public view override(ERC20) returns (string memory) {
-        return __name;
-    }
 
-    /// @notice Returns the symbol of this token
-    function symbol() public view override(ERC20) returns (string memory) {
-        return __symbol;
-    }
 
     /// @notice Baal-only function to mint shares.
     /// @param recipient Address to receive shares
@@ -103,7 +95,7 @@ contract SharesNFT is  ERC1155, BaalVotes, Initializable {
         address from,
         address to,
         uint256 amount
-    ) internal override(BaalVotes) {
+    ) internal override(BaalNFTVotes) {
         super._beforeTokenTransfer(from, to, amount);
         require(
             from == address(0) || /*Minting allowed*/

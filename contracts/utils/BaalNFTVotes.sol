@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.13;
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import "../interfaces/iCheckpoint.sol";
-
+import "./ERC1155Permit.sol";
+import "contracts/interfaces/iCheckpoint.sol";
 /**
  * @dev similar to Openzeplin ERC20Votes
  *
@@ -14,10 +13,10 @@ import "../interfaces/iCheckpoint.sol";
  * power can be queried through the public accessors  {getPriorVotes}.
  *
  */
-abstract contract BaalVotes is ERC20Permit, iCheckpoint {
+abstract contract BaalNFTVotes is ERC1155Permit, iCheckpoint {
     using ECDSA for bytes32;
 
-
+    
 
     // DELEGATE TRACKING
     mapping(address => mapping(uint256 => Checkpoint)) public checkpoints; /*maps record of vote `checkpoints` for each account by index*/
