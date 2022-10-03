@@ -3,6 +3,7 @@ pragma solidity 0.8.13;
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./ERC1155Permit.sol";
 import "contracts/interfaces/iCheckpoint.sol";
+import "../interfaces/IBaalNFToken.sol";
 /**
  * @dev similar to Openzeplin ERC20Votes
  *
@@ -13,7 +14,7 @@ import "contracts/interfaces/iCheckpoint.sol";
  * power can be queried through the public accessors  {getPriorVotes}.
  *
  */
-abstract contract BaalNFTVotes is ERC1155Permit, iCheckpoint {
+abstract contract BaalNFTVotes is ERC1155Permit, iCheckpoint, IBaalNFToken {
     using ECDSA for bytes32;
 
     
@@ -21,7 +22,7 @@ abstract contract BaalNFTVotes is ERC1155Permit, iCheckpoint {
     // DELEGATE TRACKING
     mapping(address => mapping(uint256 => Checkpoint)) public checkpoints; /*maps record of vote `checkpoints` for each account by index*/
     mapping(address => uint256) public numCheckpoints; /*maps number of `checkpoints` for each account*/
-    mapping(address => address) public delegates; /*maps record of each account's `shares` delegate*/
+    mapping (uint256 => mapping(address => address)) public delegates; /*maps idNFTs to record of each account's `shares` delegate*/
 
     // SIGNATURE HELPERS
     bytes32 constant DELEGATION_TYPEHASH = keccak256("Delegation(string name,address delegatee,uint256 nonce,uint256 expiry)");
@@ -38,24 +39,35 @@ abstract contract BaalNFTVotes is ERC1155Permit, iCheckpoint {
     ); /*emits when a delegate account's voting balance changes*/
 
     function _beforeTokenTransfer(
+        address operator,
         address from,
         address to,
-        uint256 amount
-    ) internal virtual override {
-        super._beforeTokenTransfer(from, to, amount);
-
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data       
+    ) internal override virtual  {
+        super._beforeTokenTransfer( 
+            operator, //address
+            from, //address
+            to, //address
+            ids, //uint256[] memory 
+            amounts, // uint256[] memory
+            data //bytes memory
+            );
+        require (ids.length == amounts.length, "ids.len != amounts.len");
         /*If recipient is receiving their first shares, auto-self delegate*/
-        if (balanceOf(to) == 0 && numCheckpoints[to] == 0 && amount > 0) {
-            delegates[to] = to;
-        }
-
-        _moveDelegates(delegates[from], delegates[to], amount);
+        for (uint8 i=0; i<ids.length; i++){
+            if (balanceOf(to, ids[i]) == 0 && numCheckpoints[to] == 0 && amounts[i] > 0) {
+                delegates[ids[i]][to] = to;
+            }
+            _moveDelegates(delegates[ids[i]][from], delegates[ids[i]][to], amounts[i]);
+            }
     }
 
     /// @notice Delegate votes from user to `delegatee`.
     /// @param delegatee The address to delegate votes to.
-    function delegate(address delegatee) external virtual {
-        _delegate(msg.sender, delegatee);
+    function delegate(address delegatee, uint256 idNFT) external virtual {
+        _delegate(msg.sender, delegatee, idNFT);
     }
 
     /// @notice Delegates votes from `signer` to `delegatee` with EIP-712 signature.
@@ -67,6 +79,7 @@ abstract contract BaalNFTVotes is ERC1155Permit, iCheckpoint {
     /// @param s The s signature
     function delegateBySig(
         address delegatee,
+        uint256 idNFT,
         uint256 nonce,
         uint256 expiry,
         uint8 v,
@@ -91,21 +104,21 @@ abstract contract BaalNFTVotes is ERC1155Permit, iCheckpoint {
             s
         );
         require(nonce == _useNonce(signer), "ERC20Votes: invalid nonce");
-        _delegate(signer, delegatee);
+        _delegate(signer, delegatee, idNFT);
     }
 
     /// @notice Delegates Baal voting weight.
     /// @param delegator The address to delegate 'votes' from.
     /// @param delegatee The address to delegate 'votes' to.
-    function _delegate(address delegator, address delegatee) internal virtual {
-        require(balanceOf(delegator) > 0, "!shares");
-        address currentDelegate = delegates[delegator];
-        delegates[delegator] = delegatee;
+    function _delegate(address delegator, address delegatee, uint256 idNFT) internal virtual {
+        require(balanceOf(delegator, idNFT) > 0, "!shares");
+        address currentDelegate = delegates[idNFT][delegator];
+        delegates[idNFT][delegator] = delegatee;
 
         _moveDelegates(
             currentDelegate,
             delegatee,
-            uint256(balanceOf(delegator))
+            uint256(balanceOf(delegator, idNFT))
         );
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
@@ -213,20 +226,20 @@ abstract contract BaalNFTVotes is ERC1155Permit, iCheckpoint {
     /// @notice Returns the current delegated `vote` balance for `account`.
     /// @param account The user to check delegated `votes` for.
     /// @return votes Current `votes` delegated to `account`.
-    function getCurrentVotes(address account)
+/*     function getCurrentVotes(address account)
         external
         view
         virtual
         returns (uint256 votes)
     {
-        uint256 nCheckpoints = numCheckpoints[account]; /*Get most recent checkpoint, or 0 if no checkpoints*/
+        uint256 nCheckpoints = numCheckpoints[account]; //Get most recent checkpoint, or 0 if no checkpoints
         unchecked {
             votes = nCheckpoints != 0
                 ? getCheckpoint(account, nCheckpoints - 1).votes
                 : 0;
         }
-    }
-        function getCurrentVotesGov(address account)
+    } */
+        function getCurrentVotes(address account)
         external
         view
         virtual

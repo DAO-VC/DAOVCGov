@@ -25,7 +25,9 @@ abstract contract ERC1155Permit is ERC1155, IERC1155Permit, EIP712 {
  
     mapping(address => Counters.Counter) private _nonces;
     mapping(address => mapping(address => mapping(uint256 => uint256))) private _allowances; // owner =>  spender =>  idNFT => amount
-    string name_;
+    string private name_;
+    
+
 
     // solhint-disable-next-line var-name-mixedcase
     bytes32 private constant _PERMIT_TYPEHASH =

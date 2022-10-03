@@ -6,17 +6,17 @@ import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 import "./utils/BaalNFTVotes.sol";
 import "./interfaces/IBaal.sol";
-import "./interfaces/IBaalNFToken.sol";
+
 
 // import "hardhat/console.sol";
 
 /// @title Shares
 /// @notice Accounting for Baal non voting shares
-contract SharesNFT is  IBaalNFToken, BaalNFTVotes, Initializable {
+contract SharesNFT is   BaalNFTVotes, Initializable { 
     // ERC20 CONFIG
     string private __name; /*Name for ERC20 trackers*/
     string private __symbol; /*Symbol for ERC20 trackers*/
-
+    uint256 private _totalSupply;
     // Baal Config
     IBaal public baal;
 
@@ -53,6 +53,7 @@ contract SharesNFT is  IBaalNFToken, BaalNFTVotes, Initializable {
     function mint(address recipient, uint256 id, uint256 amount, bytes calldata data) external baalOnly {
         unchecked {
             if (totalSupply() + amount <= type(uint256).max / 2) {
+                _totalSupply += amount;
                 _mint(recipient, id, amount, data);
             }
         }
@@ -70,6 +71,7 @@ contract SharesNFT is  IBaalNFToken, BaalNFTVotes, Initializable {
     /// @param account Address to lose shares
     /// @param amount Amount to burn
     function burn(address account, uint256 id, uint256 amount) external baalOnly {
+        _totalSupply -= amount;
         _burn(account, id, amount);
     }
 
@@ -90,19 +92,40 @@ contract SharesNFT is  IBaalNFToken, BaalNFTVotes, Initializable {
     /// @dev Allows transfers if msg.sender is Baal which enables minting and burning
     /// @param from The address of the source account.
     /// @param to The address of the destination account.
-    /// @param amount The number of `shares` tokens to transfer.
+    /// @param amounts[] The number of `shares` tokens to transfer.
     function _beforeTokenTransfer(
+        address operator,
         address from,
         address to,
-        uint256 amount
-    ) internal override(BaalNFTVotes) {
-        super._beforeTokenTransfer(from, to, amount);
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data 
+    ) internal override {
+        super._beforeTokenTransfer(   operator, //address
+            from, //address
+            to, //address
+            ids, //uint256[] memory 
+            amounts, // uint256[] memory
+            data //bytes memory
+            );
         require(
             from == address(0) || /*Minting allowed*/
                 (msg.sender == address(baal) && to == address(0)) || /*Burning by Baal allowed*/
                 !baal.sharesPaused(),
             "!transferable"
         );
+    }
+    function getCheckpoint(address delegatee, uint256 nCheckpoints)
+        public
+        view
+        override /* (BaalNFTVotes, IBaalNFToken) */
+        returns (Checkpoint memory)
+    {
+        return super.getCheckpoint(delegatee, nCheckpoints);
+    }
+
+    function totalSupply() public view   returns (uint256) {
+        return _totalSupply;
     }
 }
  

@@ -7,9 +7,6 @@ interface IBaalNFToken is IERC1155, iCheckpoint{
 
     function setUp(string memory _name, string memory _symbol) external;
 
-    function mint(address recipient, uint256 amount) external;
-
-    function burn(address account, uint256 amount) external;
 
 /**
  *  <NFTGov> ERC1155
@@ -52,6 +49,5 @@ interface IBaalNFToken is IERC1155, iCheckpoint{
         returns (Checkpoint memory);
 
     function getCurrentVotes(address account) external view returns(uint256);
-    function getCurrentVotesGov(address account) external view returns(uint256);
 
 }
