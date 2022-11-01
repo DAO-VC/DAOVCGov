@@ -227,15 +227,15 @@ const getBaalParams = async function (
 
 const getNewBaalAddresses = async (
   tx: ContractTransaction
-): Promise<{ baal: string; loot: string; shares: string; safe: string }> => {
+): Promise<{ baal: string; loot: string; shares: string; NFTGov: string; safe: string }> => {
   const receipt = await ethers.provider.getTransactionReceipt(tx.hash);
   let baalSummonAbi = [
-    "event SummonBaal(address indexed baal, address indexed loot, address indexed shares, address safe, bool existingSafe)",
+    "event SummonBaal(address indexed baal, address indexed loot, address indexed shares, address NFTGov, address safe, bool existingSafe)",
   ];
   let iface = new ethers.utils.Interface(baalSummonAbi);
   let log = iface.parseLog(receipt.logs[receipt.logs.length - 1]);
-  const { baal, loot, shares, safe } = log.args;
-  return { baal, loot, shares, safe };
+  const { baal, loot, shares, NFTGov, safe } = log.args;
+  return { baal, loot, shares, NFTGov, safe };
 };
 
 const verifyProposal = function (prop1: any, prop2: any, overrides?: any) {
@@ -471,6 +471,7 @@ describe("Baal contract", function () {
 
     lootToken = LootFactory.attach(addresses.loot) as Loot;
     sharesToken = SharesFactory.attach(addresses.shares) as Shares;
+    sharesNFToken = SharesFactory.attach(addresses.shares) as SharesNFT;        
     shamanLootToken = lootToken.connect(shaman);
     shamanSharesToken = sharesToken.connect(shaman);
     summonerSharesToken = sharesToken.connect(summoner);

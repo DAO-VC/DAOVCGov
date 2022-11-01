@@ -36,6 +36,7 @@ contract BaalSummoner is ModuleProxyFactory {
         address indexed baal,
         address indexed loot,
         address indexed shares,
+        address NFTGov,
         address safe,
         bool existingSafe
     );
@@ -125,7 +126,8 @@ contract BaalSummoner is ModuleProxyFactory {
         emit SummonBaal(
             address(_baal),
             address(_baal.lootToken()),
-            address(_baal.sharesToken()),
+            address(_baal.sharesToken()),             
+            address(_baal.voteNFTGov()), 
             _safeAddr,
             true
         );
@@ -222,9 +224,10 @@ contract BaalSummoner is ModuleProxyFactory {
             address(_baal),
             address(_baal.lootToken()),
             address(_baal.sharesToken()),
-            _safe,
+            address(_baal.voteNFTGov()), 
+            _safe,            
             false
-        );
+        ); 
 
         return (address(_baal));
     }
