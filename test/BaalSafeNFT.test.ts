@@ -471,7 +471,7 @@ describe("Baal contract", function () {
 
     lootToken = LootFactory.attach(addresses.loot) as Loot;
     sharesToken = SharesFactory.attach(addresses.shares) as Shares;
-    sharesNFToken = SharesFactory.attach(addresses.shares) as SharesNFT;        
+    sharesNFToken = NFTSharesFactory.attach(addresses.NFTGov) as SharesNFT;        
     shamanLootToken = lootToken.connect(shaman);
     shamanSharesToken = sharesToken.connect(shaman);
     summonerSharesToken = sharesToken.connect(summoner);
@@ -568,10 +568,10 @@ describe("Baal contract", function () {
       // expect(await shamansharesToken.balanceOf(summoner.address)).to.equal(169)
       expect(await sharesNFToken.balanceOf(summoner.address, 1)).to.equal(69);
       const votes = await sharesNFToken.getCurrentVotes(summoner.address);
-      expect(votes).to.equal(169);
-      // const totalShares = await baal.totalSupply()
-      const totalShares = await baal.totalShares();
-      expect(totalShares).to.equal(169);
+      expect(votes).to.equal(69);
+      // // const totalShares = await baal.totalSupply()
+      // const totalShares = await baal.totalShares();
+      // expect(totalShares).to.equal(69);
     });
 
     it("mint shares - new recipient", async function () {
@@ -580,7 +580,7 @@ describe("Baal contract", function () {
       expect(await sharesNFToken.balanceOf(shaman.address, 10 )).to.equal(1);
 
       const votes = await sharesToken.getCurrentVotes(shaman.address);
-      expect(votes).to.equal(69);
+      expect(votes).to.equal(169);
 
       const shamanDelegate = await sharesToken.delegates(shaman.address);
       expect(shamanDelegate).to.equal(shaman.address);
