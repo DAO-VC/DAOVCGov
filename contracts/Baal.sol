@@ -605,7 +605,7 @@ contract Baal is Module, EIP712, ReentrancyGuard {
     /// @param id Number of proposal in `proposals` mapping to process for execution.
     function cancelProposal(uint32 id) external nonReentrant {
         Proposal storage prop = proposals[id];
-        require(state(id) == ProposalState.Voting, "!voting");
+   //     require(state(id) == ProposalState.Voting, "!voting"); //don't sure but... why?
         require(
             msg.sender == prop.sponsor ||
                 sharesToken.getPriorVotes(prop.sponsor, block.timestamp - 1) <

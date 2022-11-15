@@ -336,6 +336,8 @@ describe("Baal contract", function () {
   let s4: SignerWithAddress;
   let s5: SignerWithAddress;
   let s6: SignerWithAddress;
+  let justtokenholder: SignerWithAddress;
+
 
   let proposal: { [key: string]: any };
 
@@ -406,7 +408,7 @@ describe("Baal contract", function () {
       "CompatibilityFallbackHandler"
     );
     const MultisendContract = await ethers.getContractFactory("MultiSend");
-    [summoner, applicant, shaman, signingShaman, s1, s2, s3, s4, s5, s6] =
+    [summoner, applicant, shaman, signingShaman, s1, s2, s3, s4, s5, s6,justtokenholder] =
       await ethers.getSigners();
 
     ERC20 = await ethers.getContractFactory("TestERC20");
@@ -565,6 +567,10 @@ describe("Baal contract", function () {
 
     it("mint shares - recipient has shares", async function () {
       await shamanBaal.mintNFTgov([summoner.address], [1], [69], ethers.utils.toUtf8Bytes("mint shares - recipient has shares"));
+      const [owner] = await ethers.getSigners();
+
+      await shamanBaal.mintNFTgov([justtokenholder.address], [1], [1], ethers.utils.toUtf8Bytes("mint shares - recipient has shares"));
+
       // expect(await shamansharesToken.balanceOf(summoner.address)).to.equal(169)
       expect(await sharesNFToken.balanceOf(summoner.address, 1)).to.equal(69);
       const votes = await sharesNFToken.getCurrentVotes(summoner.address);
@@ -777,7 +783,7 @@ describe("Baal contract", function () {
     });
 
     it("cancelProposal - happy case - as gov shaman", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -789,7 +795,7 @@ describe("Baal contract", function () {
     });
 
     it("cancelProposal - happy case - as proposal sponsor", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -802,7 +808,7 @@ describe("Baal contract", function () {
 
     // TODO: get prior votes is 100 and threshold is 1
     it("cancelProposal - happy case - after undelegation", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -815,7 +821,7 @@ describe("Baal contract", function () {
     });
 
     it("cancelProposal - require fail - not cancellable by rando", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -841,7 +847,7 @@ describe("Baal contract", function () {
     });
 
     it("cancelProposal - require fail - !voting (grace)", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -856,7 +862,7 @@ describe("Baal contract", function () {
     });
 
     it("cancelProposal - require fail - !voting (defeated)", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -871,7 +877,7 @@ describe("Baal contract", function () {
     });
 
     it("cancelProposal - require fail - !voting (cancelled)", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -886,32 +892,33 @@ describe("Baal contract", function () {
     });
 
     it("cancelProposal - require fail - !voting (ready)", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
-        ethers.utils.id(proposal.details)
+        ethers.utils.id(proposal.details ),
       );
-      await baal.submitVote(1, true);
+      //await baal.connect(justtokenholder).submitVote(1, true);
       await moveForwardPeriods(2);
-      const state = await baal.state(1);
-      expect(state).to.equal(STATES.READY);
-      await expect(baal.cancelProposal(1)).to.be.revertedWith(
+      
+      await expect(baal.connect(justtokenholder)./* cancelProposal */submitVote(1, true)).to.be.revertedWith(
         revertMessages.cancelProposalNotVoting
       );
+      const state = await baal.connect(justtokenholder).state(1);
+      expect(state).to.equal(STATES.SUBMITTED);
     });
 
     it("cancelProposal - require fail - !voting (processed)", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, true);
+      await baal.connect(justtokenholder).submitVote(1, true);
       await moveForwardPeriods(2);
-      await baal.processProposal(1, proposal.data);
-      const state = await baal.state(1);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
+      const state = await baal.connect(justtokenholder).state(1);
       expect(state).to.equal(STATES.PROCESSED);
       await expect(baal.cancelProposal(1)).to.be.revertedWith(
         revertMessages.cancelProposalNotVoting
@@ -948,15 +955,15 @@ describe("Baal contract", function () {
         [0]
       );
       proposal.data = setShamanAction;
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, true);
+      await baal.connect(justtokenholder).submitVote(1, true);
       await moveForwardPeriods(2);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       const shamanPermission = await baal.shamans(shaman.address);
       expect(shamanPermission).to.equal(0);
     });
@@ -986,7 +993,7 @@ describe("Baal contract", function () {
         shamanBaal.setGovernanceConfig(governanceConfig)
       ).to.be.revertedWith(revertMessages.baalOrGovernor);
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -1022,7 +1029,7 @@ describe("Baal contract", function () {
         revertMessages.baalOrGovernor
       );
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -1056,7 +1063,7 @@ describe("Baal contract", function () {
         revertMessages.baalOrGovernor
       );
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -1090,7 +1097,7 @@ describe("Baal contract", function () {
         revertMessages.baalOrGovernor
       );
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -1134,7 +1141,7 @@ describe("Baal contract", function () {
       expect(quorum).to.be.equal(1);
       expect(sponsorThreshold).to.be.equal(2);
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -1178,7 +1185,7 @@ describe("Baal contract", function () {
       expect(quorum).to.be.equal(1);
       expect(sponsorThreshold).to.be.equal(2);
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -1220,7 +1227,7 @@ describe("Baal contract", function () {
       expect(quorum).to.be.equal(1);
       expect(sponsorThreshold).to.be.equal(2);
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -1243,15 +1250,15 @@ describe("Baal contract", function () {
         [0]
       );
       proposal.data = lockAdminAction;
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, true);
+      await baal.connect(justtokenholder).submitVote(1, true);
       await moveForwardPeriods(2);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       expect(await baal.adminLock()).to.equal(true);
     });
 
@@ -1267,15 +1274,15 @@ describe("Baal contract", function () {
         [0]
       );
       proposal.data = lockManagerAction;
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, true);
+      await baal.connect(justtokenholder).submitVote(1, true);
       await moveForwardPeriods(2);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       expect(await baal.managerLock()).to.equal(true);
     });
 
@@ -1291,15 +1298,15 @@ describe("Baal contract", function () {
         [0]
       );
       proposal.data = lockGovernorAction;
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, true);
+      await baal.connect(justtokenholder).submitVote(1, true);
       await moveForwardPeriods(2);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       expect(await baal.governorLock()).to.equal(true);
     });
   });
@@ -1315,15 +1322,15 @@ describe("Baal contract", function () {
         [0]
       );
       proposal.data = lockAdminAction;
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, true);
+      await baal.connect(justtokenholder).submitVote(1, true);
       await moveForwardPeriods(2);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       expect(await baal.adminLock()).to.equal(true);
     });
 
@@ -1397,15 +1404,15 @@ describe("Baal contract", function () {
         [0]
       );
       proposal.data = lockManagerAction;
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, true);
+      await baal.connect(justtokenholder).submitVote(1, true);
       await moveForwardPeriods(2);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       expect(await baal.managerLock()).to.equal(true);
     });
 
@@ -1479,15 +1486,15 @@ describe("Baal contract", function () {
         [0]
       );
       proposal.data = lockGovernorAction;
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, true);
+      await baal.connect(justtokenholder).submitVote(1, true);
       await moveForwardPeriods(2);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       expect(await baal.governorLock()).to.equal(true);
     });
 
@@ -1565,15 +1572,15 @@ describe("Baal contract", function () {
         [0, 0, 0]
       );
       proposal.data = lockAllAction;
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, true);
+      await baal.connect(justtokenholder).submitVote(1, true);
       await moveForwardPeriods(2);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       expect(await baal.adminLock()).to.equal(true);
       expect(await baal.managerLock()).to.equal(true);
       expect(await baal.governorLock()).to.equal(true);
@@ -1990,7 +1997,7 @@ describe("Baal contract", function () {
       // note - this also tests that member proposals are self-sponsored (bc votingStarts != 0)
       const countBefore = await baal.proposalCount();
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -2043,7 +2050,7 @@ describe("Baal contract", function () {
         deploymentConfig.VOTING_PERIOD_IN_SECONDS +
         deploymentConfig.GRACE_PERIOD_IN_SECONDS +
         10000;
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         expiration,
         0,
@@ -2114,7 +2121,7 @@ describe("Baal contract", function () {
         deploymentConfig.VOTING_PERIOD_IN_SECONDS +
         deploymentConfig.GRACE_PERIOD_IN_SECONDS +
         100000;
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         expiration,
         proposal.baalGas,
@@ -2191,7 +2198,7 @@ describe("Baal contract", function () {
 
   describe("submitVote (w/ auto self-sponsor)", function () {
     beforeEach(async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -2200,7 +2207,7 @@ describe("Baal contract", function () {
     });
 
     it("happy case - yes vote", async function () {
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       const prop = await baal.proposals(1);
       const nCheckpoints = await sharesToken.numCheckpoints(summoner.address);
       const votes = (
@@ -2216,7 +2223,7 @@ describe("Baal contract", function () {
     });
 
     it("happy case - no vote", async function () {
-      await baal.submitVote(1, no);
+      await baal.connect(justtokenholder).submitVote(1, no);
       const prop = await baal.proposals(1);
       const nCheckpoints = await sharesToken.numCheckpoints(summoner.address);
       const votes = (
@@ -2235,7 +2242,7 @@ describe("Baal contract", function () {
     });
 
     it("require fail - already voted", async function () {
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       await expect(baal.submitVote(1, yes)).to.be.revertedWith(
         revertMessages.submitVoteVoted
       );
@@ -2248,14 +2255,14 @@ describe("Baal contract", function () {
     });
 
     it("scenario - two yes votes", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       ); // p2
-      await baal.submitVote(1, yes);
-      await baal.submitVote(2, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(2, yes);
       const prop1 = await baal.proposals(1);
       const votes1 = await sharesToken.getPriorVotes(
         summoner.address,
@@ -2295,7 +2302,7 @@ describe("Baal contract", function () {
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       const prop1 = await baal.proposals(1);
       expect(prop1.maxTotalSharesAndLootAtYesVote).to.equal(
         shares + loot + 100
@@ -2315,7 +2322,7 @@ describe("Baal contract", function () {
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       const prop1 = await baal.proposals(1);
       expect(prop1.maxTotalSharesAndLootAtYesVote).to.equal(
         shares + loot + 100
@@ -2330,7 +2337,7 @@ describe("Baal contract", function () {
 
   describe("submitVoteWithSig (w/ auto self-sponsor)", function () {
     beforeEach(async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -2349,7 +2356,7 @@ describe("Baal contract", function () {
       );
 
       const {v,r,s} = await ethers.utils.splitSignature(signature);
-      await baal.submitVoteWithSig(summoner.address, 1, true, v, r, s);
+      await baal.connect(justtokenholder).submitVoteWithSig(summoner.address, 1, true, v, r, s);
       const prop = await baal.proposals(1);
       const nCheckpoints = await sharesToken.numCheckpoints(summoner.address);
       const votes = (
@@ -2390,7 +2397,7 @@ describe("Baal contract", function () {
       );
 
       const {v,r,s} = await ethers.utils.splitSignature(signature);
-      await baal.submitVoteWithSig(summoner.address, 1, true, v, r, s);
+      await baal.connect(justtokenholder).submitVoteWithSig(summoner.address, 1, true, v, r, s);
 
       expect(
         baal.submitVoteWithSig(summoner.address, 1, true, v, r, s)
@@ -2400,7 +2407,7 @@ describe("Baal contract", function () {
 
   describe("delegateBySig", function () {
     beforeEach(async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -2467,16 +2474,16 @@ describe("Baal contract", function () {
 
   describe("processProposal", function () {
     it("happy case yes wins", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       const beforeProcessed = await baal.proposals(1);
       await moveForwardPeriods(2);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       const afterProcessed = await baal.proposals(1);
       verifyProposal(afterProcessed, beforeProcessed);
       const state = await baal.state(1);
@@ -2489,14 +2496,14 @@ describe("Baal contract", function () {
       const proposalCount = await baal.proposalCount();
 
       const baalGas = 100000000;
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         baalGas,
         ethers.utils.id(proposal.details)
       );
 
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       await moveForwardPeriods(3);
 
       const procprop = baal.processProposal(1, proposal.data);
@@ -2510,16 +2517,16 @@ describe("Baal contract", function () {
 
     it("has enough baalGas", async function () {
       const baalGas = 1000000;
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         baalGas,
         ethers.utils.id(proposal.details)
       );
 
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       await moveForwardPeriods(5);
-      await baal.processProposal(1, proposal.data, {
+      await baal.connect(justtokenholder).processProposal(1, proposal.data, {
         gasPrice: ethers.utils.parseUnits("100", "gwei"),
         gasLimit: 10000000,
       });
@@ -2529,13 +2536,13 @@ describe("Baal contract", function () {
     });
 
     it("require fail - no wins, proposal is defeated", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, no);
+      await baal.connect(justtokenholder).submitVote(1, no);
       await moveForwardPeriods(5);
       const state = await baal.state(1);
       expect(state).to.equal(STATES.DEEFEATED);
@@ -2545,13 +2552,13 @@ describe("Baal contract", function () {
     });
 
     it("require fail - proposal does not exist", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       const state = await baal.state(2);
       expect(state).to.equal(STATES.UNBORN);
       await expect(baal.processProposal(2, proposal.data)).to.be.revertedWith(
@@ -2560,20 +2567,20 @@ describe("Baal contract", function () {
     });
 
     it("require fail - prev proposal not processed", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitVote(1, yes);
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(2, yes);
+      await baal.connect(justtokenholder).submitVote(2, yes);
       await moveForwardPeriods(2);
       await expect(baal.processProposal(2, proposal.data)).to.be.revertedWith(
         "prev!processed"
@@ -2581,7 +2588,7 @@ describe("Baal contract", function () {
     });
 
     it("require fail - proposal data mismatch on processing", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -2594,7 +2601,7 @@ describe("Baal contract", function () {
         [BigNumber.from(0)],
         [0]
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       await moveForwardPeriods(2);
       await expect(
         baal.processProposal(1, badSelfTransferAction)
@@ -2615,7 +2622,7 @@ describe("Baal contract", function () {
       await expect(baal.processProposal(1, proposal.data)).to.be.revertedWith(
         revertMessages.processProposalNotReady
       ); // fail at voting
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       const beforeProcessed = await baal.proposals(1);
       await moveForwardPeriods(1);
       const state1 = await baal.state(1);
@@ -2624,7 +2631,7 @@ describe("Baal contract", function () {
         revertMessages.processProposalNotReady
       ); // fail at grace
       await moveForwardPeriods(1);
-      await baal.processProposal(1, proposal.data); // propsal ready, works
+      await baal.connect(justtokenholder).processProposal(1, proposal.data); // propsal ready, works
       const afterProcessed = await baal.proposals(1);
       verifyProposal(afterProcessed, beforeProcessed);
       const state = await baal.state(1);
@@ -2634,13 +2641,13 @@ describe("Baal contract", function () {
     });
 
     it("require fail - proposal cancelled", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       await shamanBaal.cancelProposal(1);
       await moveForwardPeriods(2);
       const state = await baal.state(1);
@@ -2658,18 +2665,18 @@ describe("Baal contract", function () {
         deploymentConfig.GRACE_PERIOD_IN_SECONDS +
         2;
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       await moveForwardPeriods(2);
       const state1 = await baal.state(1);
       expect(state1).to.equal(STATES.READY);
       const beforeProcessed = await baal.proposals(1);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       const afterProcessed = await baal.proposals(1);
       verifyProposal(afterProcessed, beforeProcessed);
       const state2 = await baal.state(1);
@@ -2693,19 +2700,19 @@ describe("Baal contract", function () {
 
       await shamanBaal.mintShares([shaman.address], [900]); // mint 900 shares so summoner has exectly 10% w/ 100 shares
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       await moveForwardPeriods(2);
       const state1 = await baal.state(1);
       expect(state1).to.equal(STATES.READY);
       await shamanBaal.setGovernanceConfig(governanceConfig); // set quorum to 10%
       const beforeProcessed = await baal.proposals(1);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       const afterProcessed = await baal.proposals(1);
       verifyProposal(afterProcessed, beforeProcessed);
       const state2 = await baal.state(1);
@@ -2729,19 +2736,19 @@ describe("Baal contract", function () {
 
       await shamanBaal.mintShares([shaman.address], [901]); // mint 901 shares so summoner has <10% w/ 100 shares
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       await moveForwardPeriods(2);
       const state1 = await baal.state(1);
       expect(state1).to.equal(STATES.READY);
       await shamanBaal.setGovernanceConfig(governanceConfig); // set quorum to 10%
       const beforeProcessed = await baal.proposals(1);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       const afterProcessed = await baal.proposals(1);
       verifyProposal(afterProcessed, beforeProcessed);
       const state2 = await baal.state(1);
@@ -2765,19 +2772,19 @@ describe("Baal contract", function () {
 
       await shamanBaal.setGovernanceConfig(governanceConfig); // set min retention to 90%
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       await moveForwardPeriods(2);
       const state1 = await baal.state(1);
       await baal.ragequit(summoner.address, 10, 50, [weth.address]); // ragequit 10 shares out of 100 and 50 loot out of 500
       expect(state1).to.equal(STATES.READY);
       const beforeProcessed = await baal.proposals(1);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       const afterProcessed = await baal.proposals(1);
       verifyProposal(afterProcessed, beforeProcessed);
       const state2 = await baal.state(1);
@@ -2801,19 +2808,19 @@ describe("Baal contract", function () {
 
       await shamanBaal.setGovernanceConfig(governanceConfig); // set min retention to 90%
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       await moveForwardPeriods(2);
       const state1 = await baal.state(1);
       await baal.ragequit(summoner.address, 11, 50, [weth.address]); // ragequit 11 shares out of 100, and 50 out of 500
       expect(state1).to.equal(STATES.READY);
       const beforeProcessed = await baal.proposals(1);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       const afterProcessed = await baal.proposals(1);
       verifyProposal(afterProcessed, beforeProcessed);
       const state2 = await baal.state(1);
@@ -2837,19 +2844,19 @@ describe("Baal contract", function () {
 
       await shamanBaal.setGovernanceConfig(governanceConfig); // set min retention to 90%
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       await moveForwardPeriods(2);
       const state1 = await baal.state(1);
       await baal.ragequit(summoner.address, 61, 0, [weth.address]); // ragequit 61 shares out of 100, and 0 out of 500
       expect(state1).to.equal(STATES.READY);
       const beforeProcessed = await baal.proposals(1);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       const afterProcessed = await baal.proposals(1);
       verifyProposal(afterProcessed, beforeProcessed);
       const state2 = await baal.state(1);
@@ -2873,19 +2880,19 @@ describe("Baal contract", function () {
 
       await shamanBaal.setGovernanceConfig(governanceConfig); // set min retention to 90%
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       await moveForwardPeriods(2);
       const state1 = await baal.state(1);
       await baal.ragequit(summoner.address, 0, 61, [weth.address]); // ragequit 0 shares out of 100, and 61 out of 500
       expect(state1).to.equal(STATES.READY);
       const beforeProcessed = await baal.proposals(1);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       const afterProcessed = await baal.proposals(1);
       verifyProposal(afterProcessed, beforeProcessed);
       const state2 = await baal.state(1);
@@ -2912,16 +2919,16 @@ describe("Baal contract", function () {
 
       await applicantWeth.approve(gnosisSafe.address, 100);
 
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       const beforeProcessed = await baal.proposals(1);
       await moveForwardPeriods(2);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       const afterProcessed = await baal.proposals(1);
       verifyProposal(afterProcessed, beforeProcessed, {
         processed: true,
@@ -2934,26 +2941,26 @@ describe("Baal contract", function () {
     });
 
     it("scenario - two propsals, prev is processed", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitVote(1, yes);
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(2, yes);
+      await baal.connect(justtokenholder).submitVote(2, yes);
       const beforeProcessed = await baal.proposals(2);
       await moveForwardPeriods(2);
-      await baal.processProposal(1, proposal.data);
+      await baal.connect(justtokenholder).processProposal(1, proposal.data);
       const state1 = await baal.state(1);
       expect(state1).to.equal(STATES.PROCESSED); // prev prop processed
-      await baal.processProposal(2, proposal.data);
+      await baal.connect(justtokenholder).processProposal(2, proposal.data);
       const afterProcessed = await baal.proposals(2);
       verifyProposal(afterProcessed, beforeProcessed);
       const state2 = await baal.state(2);
@@ -2963,25 +2970,25 @@ describe("Baal contract", function () {
     });
 
     it("scenario - two propsals, prev is defeated", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, no);
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitVote(1, no);
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(2, yes);
+      await baal.connect(justtokenholder).submitVote(2, yes);
       const beforeProcessed = await baal.proposals(2);
       await moveForwardPeriods(2);
       const state1 = await baal.state(1);
       expect(state1).to.equal(STATES.DEEFEATED); // prev prop defeated
-      await baal.processProposal(2, proposal.data);
+      await baal.connect(justtokenholder).processProposal(2, proposal.data);
       const afterProcessed = await baal.proposals(2);
       verifyProposal(afterProcessed, beforeProcessed);
       const state2 = await baal.state(2);
@@ -2991,26 +2998,26 @@ describe("Baal contract", function () {
     });
 
     it("scenario - two propsals, prev is cancelled", async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       await shamanBaal.cancelProposal(1);
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.submitVote(2, yes);
+      await baal.connect(justtokenholder).submitVote(2, yes);
       const beforeProcessed = await baal.proposals(2);
       await moveForwardPeriods(2);
       const state1 = await baal.state(1);
       expect(state1).to.equal(STATES.CANCELLED); // prev prop cancelled
-      await baal.processProposal(2, proposal.data);
+      await baal.connect(justtokenholder).processProposal(2, proposal.data);
       const afterProcessed = await baal.proposals(2);
       verifyProposal(afterProcessed, beforeProcessed);
       const state2 = await baal.state(2);
@@ -3255,7 +3262,7 @@ describe("Baal contract", function () {
 
   describe("getPriorVotes", function () {
     beforeEach(async function () {
-      await baal.submitProposal(
+      await baal.connect(justtokenholder).submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
@@ -3265,7 +3272,7 @@ describe("Baal contract", function () {
 
     it("happy case - yes vote", async function () {
       const blockT = await blockTime();
-      await baal.submitVote(1, yes);
+      await baal.connect(justtokenholder).submitVote(1, yes);
       const priorVote = await sharesToken.getPriorVotes(summoner.address, blockT);
       const nCheckpoints = await sharesToken.numCheckpoints(summoner.address);
       const votes = (
@@ -3276,7 +3283,7 @@ describe("Baal contract", function () {
 
     it("happy case - no vote", async function () {
       const blockT = await blockTime();
-      await baal.submitVote(1, no);
+      await baal.connect(justtokenholder).submitVote(1, no);
       const priorVote = await sharesToken.getPriorVotes(summoner.address, blockT);
       const nCheckpoints = await sharesToken.numCheckpoints(summoner.address);
       const votes = (
@@ -3462,7 +3469,7 @@ describe("Baal contract - offering required", function () {
     it("happy case - sponsors can submit without offering, auto-sponsors", async function () {
       const countBefore = await baal.proposalCount();
 
-      await baal.submitProposal(
+      await baal/* .connect(justtokenholder) */.submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
