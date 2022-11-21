@@ -16,7 +16,7 @@ contract SharesNFT is   BaalNFTVotes, Initializable {
     // ERC20 CONFIG
     string private __name; /*Name for ERC20 trackers*/
     string private __symbol; /*Symbol for ERC20 trackers*/
-    uint256 private _totalSupply;
+    mapping (uint256 => uint256) private _totalSupply;
     // Baal Config
     IBaal public baal;
 
@@ -40,7 +40,14 @@ contract SharesNFT is   BaalNFTVotes, Initializable {
         __symbol = symbol_;
     }
 
-
+  /**
+     * @notice setup weights of NFTs for voting
+     * @param _idNFT - as is IdNFT 
+     * @param _multiplier - NFT's weight multiplier
+     */
+    function setupNFTvotes (uint256 _idNFT, uint8 _multiplier) public baalOnly {
+       _setupNFTvotes(_idNFT, _multiplier);
+    }
 
     /// @notice Baal-only function to mint shares.
     /// @param recipient Address to receive shares
@@ -52,8 +59,14 @@ contract SharesNFT is   BaalNFTVotes, Initializable {
 
     function mint(address recipient, uint256 id, uint256 amount, bytes calldata data) external baalOnly {
         unchecked {
-            if (totalSupply() + amount <= type(uint256).max / 2) {
-                _totalSupply += amount;
+            if (totalSupply(id) + amount <= type(uint256).max / 2) {
+                _totalSupply[id] += amount;
+                uint256[] memory ids = new uint[](1);
+                uint256[] memory amounts = new uint[](1);
+                ids[0] = id;
+                amounts[0] = amount;
+                _beforeTokenTransfer(msg.sender, address(0), recipient, ids, amounts, data);
+
                 _mint(recipient, id, amount, data);
             }
         }
@@ -71,7 +84,7 @@ contract SharesNFT is   BaalNFTVotes, Initializable {
     /// @param account Address to lose shares
     /// @param amount Amount to burn
     function burn(address account, uint256 id, uint256 amount) external baalOnly {
-        _totalSupply -= amount;
+        _totalSupply[id] -= amount;
         _burn(account, id, amount);
     }
 
@@ -100,8 +113,8 @@ contract SharesNFT is   BaalNFTVotes, Initializable {
         uint256[] memory ids,
         uint256[] memory amounts,
         bytes memory data 
-    ) internal override {
-        super._beforeTokenTransfer(   operator, //address
+    ) internal override  {
+        __beforeTokenTransfer(   operator, //address
             from, //address
             to, //address
             ids, //uint256[] memory 
@@ -124,8 +137,9 @@ contract SharesNFT is   BaalNFTVotes, Initializable {
         return super.getCheckpoint(delegatee, nCheckpoints);
     }
 
-    function totalSupply() public view   returns (uint256) {
-        return _totalSupply;
+    function totalSupply(uint256 _id) public view   returns (uint256) {
+        return _totalSupply[_id];
     }
+
 }
  

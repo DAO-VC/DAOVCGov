@@ -562,12 +562,16 @@ describe("Baal contract", function () {
 
       await shamanBaal.setupNFTvotes(1,1);
       await shamanBaal.setupNFTvotes(10,10);
-
+      const mul1= await sharesNFToken.nftVotesMul(1);
+      const mul10= await sharesNFToken.nftVotesMul(10);
+      expect(mul1).to.equal(1);
+      expect(mul10).to.equal(10);
     });
 
     it("mint shares - recipient has shares", async function () {
+      await shamanBaal.setupNFTvotes(1,1);
+      await shamanBaal.setupNFTvotes(10,10);
       await shamanBaal.mintNFTgov([summoner.address], [1], [69], ethers.utils.toUtf8Bytes("mint shares - recipient has shares"));
-      const [owner] = await ethers.getSigners();
 
       await shamanBaal.mintNFTgov([justtokenholder.address], [1], [1], ethers.utils.toUtf8Bytes("mint shares - recipient has shares"));
 
@@ -575,20 +579,24 @@ describe("Baal contract", function () {
       expect(await sharesNFToken.balanceOf(summoner.address, 1)).to.equal(69);
       const votes = await sharesNFToken.getCurrentVotes(summoner.address);
       expect(votes).to.equal(69);
-      // // const totalShares = await baal.totalSupply()
-      // const totalShares = await baal.totalShares();
-      // expect(totalShares).to.equal(69);
+      const totalShares = await sharesNFToken.totalSupply(1)
+     // const totalShares = await baal.totalShares();
+      expect(totalShares.toNumber()).to.equal(70);
     });
 
     it("mint shares - new recipient", async function () {
-      await shamanBaal.mintNFTgov([shaman.address], [10], [1], ethers.utils.toUtf8Bytes("mint shares - new recipients"));
+      await shamanBaal.setupNFTvotes(10,10);
+      const tx = await shamanBaal.mintNFTgov([shaman.address], [10], [1], ethers.utils.toUtf8Bytes("mint shares - new recipients"));
+      // const receipt = await ethers.provider.getTransactionReceipt(tx.hash);
+      //  console.log(receipt.logs)
+      //await shamanBaal.mintNFTgov([summoner.address], [1], [69], ethers.utils.toUtf8Bytes("mint shares - recipient has shares"));
+
       const now = await blockTime();
       expect(await sharesNFToken.balanceOf(shaman.address, 10 )).to.equal(1);
+      const votes = await sharesNFToken.getCurrentVotes(shaman.address);
+      expect(votes).to.equal(10);
 
-      const votes = await sharesToken.getCurrentVotes(shaman.address);
-      expect(votes).to.equal(169);
-
-      const shamanDelegate = await sharesToken.delegates(shaman.address);
+      const shamanDelegate = await sharesNFToken.delegates(10, shaman.address);
       expect(shamanDelegate).to.equal(shaman.address);
     });
 
@@ -955,15 +963,15 @@ describe("Baal contract", function () {
         [0]
       );
       proposal.data = setShamanAction;
-      await baal.connect(justtokenholder).submitProposal(
+      await baal./* connect(justtokenholder). */submitProposal(
         proposal.data,
         proposal.expiration,
         proposal.baalGas,
         ethers.utils.id(proposal.details)
       );
-      await baal.connect(justtokenholder).submitVote(1, true);
+      await baal./* connect(justtokenholder). */submitVote(1, true);
       await moveForwardPeriods(2);
-      await baal.connect(justtokenholder).processProposal(1, proposal.data);
+      await baal./* connect(justtokenholder). */processProposal(1, proposal.data);
       const shamanPermission = await baal.shamans(shaman.address);
       expect(shamanPermission).to.equal(0);
     });

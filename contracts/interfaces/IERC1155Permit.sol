@@ -2,7 +2,7 @@
 // OpenZeppelin Contracts v4.4.1 (token/ERC20/extensions/draft-IERC20Permit.sol)
 
 pragma solidity ^0.8.0;
-
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 /**
  * @dev Interface of the ERC20 Permit extension allowing approvals to be made via signatures, as defined in
  * https://eips.ethereum.org/EIPS/eip-2612[EIP-2612].
@@ -11,7 +11,7 @@ pragma solidity ^0.8.0;
  * presenting a message signed by the account. By not relying on {IERC20-approve}, the token holder account doesn't
  * need to send a transaction, and thus is not required to hold Ether at all.
  */
-interface IERC1155Permit {
+interface IERC1155Permit is IERC1155 {
     /**
      * @dev Sets `value` as the allowance of `spender` over ``owner``'s tokens,
      * given ``owner``'s signed approval.

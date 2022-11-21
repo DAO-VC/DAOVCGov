@@ -49,5 +49,8 @@ interface IBaalNFToken is IERC1155, iCheckpoint{
         returns (Checkpoint memory);
 
     function getCurrentVotes(address account) external view returns(uint256);
+    function setupNFTvotes (uint256 _idNFT, uint8 _multiplier) external ;
+    function getNFTVotesMul (address _voter) external view returns (uint256 mul) ; 
+
 
 }

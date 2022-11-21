@@ -131,5 +131,22 @@ abstract contract ERC1155Permit is ERC1155, IERC1155Permit, EIP712 {
     function name() public view  returns (string memory) {
         return name_;
     }
+    function _beforeTokenTransfer(
+        address operator,
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) internal virtual  override  {
+            super._beforeTokenTransfer(   operator, //address
+            from, //address
+            to, //address
+            ids, //uint256[] memory 
+            amounts, // uint256[] memory
+            data //bytes memory
+            );
+    }
+
 
 }

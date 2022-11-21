@@ -4,6 +4,8 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./ERC1155Permit.sol";
 import "contracts/interfaces/iCheckpoint.sol";
 import "../interfaces/IBaalNFToken.sol";
+//import "hardhat/console.sol";
+
 /**
  * @dev similar to Openzeplin ERC20Votes
  *
@@ -17,12 +19,13 @@ import "../interfaces/IBaalNFToken.sol";
 abstract contract BaalNFTVotes is ERC1155Permit, iCheckpoint, IBaalNFToken {
     using ECDSA for bytes32;
 
-    
-
     // DELEGATE TRACKING
     mapping(address => mapping(uint256 => Checkpoint)) public checkpoints; /*maps record of vote `checkpoints` for each account by index*/
     mapping(address => uint256) public numCheckpoints; /*maps number of `checkpoints` for each account*/
     mapping (uint256 => mapping(address => address)) public delegates; /*maps idNFTs to record of each account's `shares` delegate*/
+
+    mapping (uint256 => uint8) public nftVotesMul; /* IDNFT =>  multiplier  of NFT votes */
+    uint256[] nftVotesAll; /* list of all NFT for voting */
 
     // SIGNATURE HELPERS
     bytes32 constant DELEGATION_TYPEHASH = keccak256("Delegation(string name,address delegatee,uint256 nonce,uint256 expiry)");
@@ -38,29 +41,59 @@ abstract contract BaalNFTVotes is ERC1155Permit, iCheckpoint, IBaalNFToken {
         uint256 newBalance
     ); /*emits when a delegate account's voting balance changes*/
 
-    function _beforeTokenTransfer(
+
+  /**
+     * @notice setup weights of NFTs for voting
+     * @param _idNFT - as is IdNFT 
+     * @param _multiplier - NFT's weight multiplier
+     */
+    function _setupNFTvotes (uint256 _idNFT, uint8 _multiplier) internal {
+        if (_multiplier == 0) { //delete _idNFT
+            // console.log("delete _idNFT", _idNFT); 
+            for (uint8 i=0; i<nftVotesAll.length; i++) { 
+                if (nftVotesAll[i] == _idNFT) {
+                    nftVotesAll[i] = nftVotesAll[nftVotesAll.length - 1];
+                    delete (nftVotesAll[nftVotesAll.length - 1]); //TODO make test for deleting
+                    return;
+                }
+            }
+        } else if (  nftVotesMul[_idNFT] == 0) { // add new _IDNFT 
+            // console.log("add new _idNFT", _idNFT, _multiplier); 
+            nftVotesMul[_idNFT] = _multiplier;
+            nftVotesAll.push (_idNFT);
+            return;
+        } else {  // update existing _idNFT
+            // console.log("update new _idNFT", _idNFT, _multiplier); 
+            nftVotesMul[_idNFT] = _multiplier;
+            return;
+        }
+    }
+        function __beforeTokenTransfer(
         address operator,
         address from,
         address to,
         uint256[] memory ids,
         uint256[] memory amounts,
         bytes memory data       
-    ) internal override virtual  {
-        super._beforeTokenTransfer( 
+    ) internal  {
+        /* _beforeTokenTransfer( 
             operator, //address
             from, //address
             to, //address
             ids, //uint256[] memory 
             amounts, // uint256[] memory
             data //bytes memory
-            );
+            ); */
         require (ids.length == amounts.length, "ids.len != amounts.len");
         /*If recipient is receiving their first shares, auto-self delegate*/
         for (uint8 i=0; i<ids.length; i++){
             if (balanceOf(to, ids[i]) == 0 && numCheckpoints[to] == 0 && amounts[i] > 0) {
+                
                 delegates[ids[i]][to] = to;
             }
-            _moveDelegates(delegates[ids[i]][from], delegates[ids[i]][to], amounts[i]);
+             // console.log(" amounts[i] * nftVotesMul[ids[i]]", ids[i],  amounts[i],  nftVotesMul[ids[i]]);
+            uint256 votes =  amounts[i] * nftVotesMul[ids[i]];
+            _moveDelegates(delegates[ids[i]][from], delegates[ids[i]][to], votes);
             }
     }
 
@@ -114,11 +147,13 @@ abstract contract BaalNFTVotes is ERC1155Permit, iCheckpoint, IBaalNFToken {
         require(balanceOf(delegator, idNFT) > 0, "!shares");
         address currentDelegate = delegates[idNFT][delegator];
         delegates[idNFT][delegator] = delegatee;
+        uint256 votes = balanceOf(delegator, idNFT) * nftVotesMul[idNFT];
+        // console.log("_moveDelegates", votes);
 
         _moveDelegates(
             currentDelegate,
             delegatee,
-            uint256(balanceOf(delegator, idNFT))
+            votes
         );
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
@@ -239,7 +274,7 @@ abstract contract BaalNFTVotes is ERC1155Permit, iCheckpoint, IBaalNFToken {
                 : 0;
         }
     } */
-        function getCurrentVotes(address account)
+    function getCurrentVotes(address account)
         external
         view
         virtual
@@ -260,5 +295,11 @@ abstract contract BaalNFTVotes is ERC1155Permit, iCheckpoint, IBaalNFToken {
         returns (Checkpoint memory)
     {
         return checkpoints[delegatee][nCheckpoints];
+    }
+
+    function getNFTVotesMul (address _voter) public view returns (uint256 mul)  { 
+        for (uint8 i=0; i<nftVotesAll.length; i++) {
+            mul += nftVotesMul[nftVotesAll[i]] * balanceOf(_voter, nftVotesAll[i]);
+        }
     }
 }

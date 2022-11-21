@@ -67,8 +67,7 @@ contract Baal is Module, EIP712, ReentrancyGuard {
     // PROPOSAL TRACKING
     mapping(address => mapping(uint32 => bool)) public memberVoted; /*maps members to their proposal votes (true = voted) */
     mapping(uint256 => Proposal) public proposals; /*maps `proposal id` to struct details*/
-    mapping (uint256 => uint8) public nftVotesMul; /* IDNFT =>  multiplier  of NFT votes */
-    uint256[] nftVotesAll; /* list of all NFT for voting */
+
 
     // MISCELLANEOUS PARAMS
     uint32 public latestSponsoredProposalId; /* the id of the last proposal to be sponsored */
@@ -313,22 +312,7 @@ contract Baal is Module, EIP712, ReentrancyGuard {
      * @param _multiplier - NFT's weight multiplier
      */
     function setupNFTvotes (uint256 _idNFT, uint8 _multiplier) public baalOrAdminOnly {
-        if (_multiplier == 0) { //delete _idNFT
-            for (uint8 i=0; i<nftVotesAll.length; i++) { 
-                if (nftVotesAll[i] == _idNFT) {
-                    nftVotesAll[i] = nftVotesAll[nftVotesAll.length - 1];
-                    delete (nftVotesAll[nftVotesAll.length - 1]);
-                    return;
-                }
-            }
-        } else if (  nftVotesMul[_idNFT] == 0) { // add new _IDNFT 
-            nftVotesMul[_idNFT] = _multiplier;
-            nftVotesAll.push (_idNFT);
-            return;
-        } else {  // update existing _idNFT
-            nftVotesMul[_idNFT] = _multiplier;
-            return;
-        }
+        voteNFTGov.setupNFTvotes(_idNFT, _multiplier);
     }
 
     /**
@@ -336,9 +320,7 @@ contract Baal is Module, EIP712, ReentrancyGuard {
      * @param  _voter - as is, address of voter
      */
     function getNFTVotesMul (address _voter) public view returns (uint256 mul)  { 
-        for (uint8 i=0; i<nftVotesAll.length; i++) {
-            mul += nftVotesMul[nftVotesAll[i]] * voteNFTGov.balanceOf(_voter, nftVotesAll[i]);
-        }
+        return voteNFTGov.getNFTVotesMul(_voter);
     }
     /*****************
     PROPOSAL FUNCTIONS
