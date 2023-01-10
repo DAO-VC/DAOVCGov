@@ -33,6 +33,7 @@ import signDelegation from "../src/signDelegation";
 import signPermit from "../src/signPermit";
 import { string } from "hardhat/internal/core/params/argumentTypes";
 import { calculateProxyAddress } from "@gnosis.pm/zodiac";
+import {erc20} from "../src/types/@openzeppelin/contracts/token";
 
 use(solidity);
 
@@ -603,26 +604,28 @@ describe("Baal contract", function () {
     it("mint shares - recipient has delegate - new shares are also delegated", async function () {
       await sharesToken.delegate(shaman.address);
       const t1 = await blockTime();
-      await shamanBaal.mintShares([summoner.address], [69]);
+      await shamanBaal.setupNFTvotes(10,10);
+      await shamanBaal.mintNFTgov([summoner.address], [10],[1], ethers.utils.toUtf8Bytes("mint shares - recipient has delegate - new shares are also delegated"));
 
-      expect(await sharesToken.balanceOf(summoner.address)).to.equal(169);
+      expect(await sharesToken.balanceOf(summoner.address)).to.equal(10);
 
       const summonerVotes = await sharesToken.getCurrentVotes(summoner.address);
       expect(summonerVotes).to.equal(0);
 
       const shamanVotes = await sharesToken.getCurrentVotes(shaman.address);
-      expect(shamanVotes).to.equal(169);
+      expect(shamanVotes).to.equal(10);
 
       const summonerDelegate = await sharesToken.delegates(summoner.address);
       expect(summonerDelegate).to.equal(shaman.address);
     });
 
     it("mint shares - zero mint amount - no votes", async function () {
-      await shamanBaal.mintShares([shaman.address], [0]);
+      await shamanBaal.setupNFTvotes(10,10);
+      await shamanBaal.mintNFTgov([shaman.address], [10],[0], ethers.utils.toUtf8Bytes("mint shares - zero mint amount - no votes"));
       const now = await blockTime();
-      expect(await sharesToken.balanceOf(shaman.address)).to.equal(0);
+      expect(await sharesToken.balanceOf(shaman.address)).to.equal(10);
       const votes = await sharesToken.getCurrentVotes(shaman.address);
-      expect(votes).to.equal(0);
+      expect(votes).to.equal(10);
       const totalShares = await sharesToken.totalSupply();
       expect(totalShares).to.equal(100);
 
@@ -635,12 +638,12 @@ describe("Baal contract", function () {
 
     it("mint shares - require fail - array parity", async function () {
       await expect(
-        shamanBaal.mintShares([summoner.address], [69, 69])
+          shamanBaal.mintNFTgov([summoner.address], [10],[1,1], ethers.utils.toUtf8Bytes("mint shares - require fail - array parity"))
       ).to.be.revertedWith(revertMessages.mintSharesArrayParity);
     });
-
+    //TODO: check burns
     it("burn shares", async function () {
-      await shamanBaal.burnShares([summoner.address], [69]);
+      await shamanBaal.burnShares([summoner.address], [1]);
       expect(await sharesToken.balanceOf(summoner.address)).to.equal(31);
     });
 
@@ -691,8 +694,10 @@ describe("Baal contract", function () {
 
       expect(await sharesToken.balanceOf(applicant.address)).to.equal(0);
 
+      await shamanBaal.setupNFTvotes(10,10);
+      await shamanBaal.setupNFTvotes(10,10);
       // mint shares for a separate member than the summoner
-      await shamanBaal.mintShares([applicant.address], [minting]);
+      await shamanBaal.mintNFTgov([applicant.address], [10],[minting], ethers.utils.toUtf8Bytes("have shaman mint and burn _delegated_ shares"))
 
       expect(await sharesToken.balanceOf(applicant.address)).to.equal(minting);
       expect(await sharesToken.delegates(applicant.address)).to.equal(
@@ -984,7 +989,7 @@ describe("Baal contract", function () {
 
       // manager
       await expect(
-        shamanBaal.mintShares([shaman.address], [69])
+          shamanBaal.mintNFTgov([shaman.address], [10],[69], ethers.utils.toUtf8Bytes("permission = 0 - all actions fail"))
       ).to.be.revertedWith(revertMessages.baalOrManager);
       await expect(
         shamanBaal.burnShares([shaman.address], [69])
@@ -1055,7 +1060,7 @@ describe("Baal contract", function () {
       );
 
       // manager - success
-      await s2Baal.mintShares([s2.address], [69]);
+      await s2Baal.mintNFTgov([s2.address], [10],[69], ethers.utils.toUtf8Bytes("permission = 2 - manager actions succeed"));
       expect(await sharesToken.balanceOf(s2.address)).to.equal(69);
       await s2Baal.burnShares([s2.address], [69]);
       expect(await sharesToken.balanceOf(s2.address)).to.equal(0);
@@ -1064,7 +1069,7 @@ describe("Baal contract", function () {
       await s2Baal.burnLoot([s2.address], [69]);
       expect(await lootToken.balanceOf(s2.address)).to.equal(0);
 
-      await s2Baal.mintShares([summoner.address], [100]); // cleanup - mint summoner shares so they can submit/sponsor
+      await s2Baal.mintNFTgov([s2.address], [1],[100], ethers.utils.toUtf8Bytes("permission = 2 - manager actions succeed"));// cleanup - mint summoner shares so they can submit/sponsor
 
       // governor - fail
       expect(s2Baal.setGovernanceConfig(governanceConfig)).to.be.revertedWith(
@@ -1089,7 +1094,7 @@ describe("Baal contract", function () {
       expect(await s3Baal.lootPaused()).to.equal(true);
 
       // manager - success
-      await s3Baal.mintShares([s3.address], [69]);
+      await s3Baal.mintNFTgov([s3.address], [10],[69], ethers.utils.toUtf8Bytes("permission = 3 - admin + manager actions succeed"));
       expect(await sharesToken.balanceOf(s3.address)).to.equal(69);
       await s3Baal.burnShares([s3.address], [69]);
       expect(await sharesToken.balanceOf(s3.address)).to.equal(0);
@@ -1098,7 +1103,7 @@ describe("Baal contract", function () {
       await s3Baal.burnLoot([s3.address], [69]);
       expect(await lootToken.balanceOf(s3.address)).to.equal(0);
 
-      await s3Baal.mintShares([summoner.address], [100]); // cleanup - mint summoner shares so they can submit/sponsor
+      await s3Baal.mintNFTgov([s3.address], [1],[100], ethers.utils.toUtf8Bytes("permission = 3 - admin + manager actions succeed"));// cleanup - mint summoner shares so they can submit/sponsor
 
       // governor - fail
       expect(s3Baal.setGovernanceConfig(governanceConfig)).to.be.revertedWith(
@@ -1123,7 +1128,7 @@ describe("Baal contract", function () {
       );
 
       // manager - fail
-      await expect(s4Baal.mintShares([s4.address], [69])).to.be.revertedWith(
+      await expect(s4Baal.mintNFTgov([s4.address], [10],[69], ethers.utils.toUtf8Bytes("permission = 4 - governor actions succeed"))).to.be.revertedWith(
         revertMessages.baalOrManager
       );
       await expect(s4Baal.burnShares([s4.address], [69])).to.be.revertedWith(
@@ -1167,7 +1172,7 @@ describe("Baal contract", function () {
       expect(await s5Baal.lootPaused()).to.equal(true);
 
       // manager - fail
-      expect(s5Baal.mintShares([s5.address], [69])).to.be.revertedWith(
+      expect(s5Baal.mintNFTgov([s5.address], [10],[69], ethers.utils.toUtf8Bytes("permission = 5 - admin + governor actions succeed"))).to.be.revertedWith(
         revertMessages.baalOrManager
       );
       expect(s5Baal.burnShares([s5.address], [69])).to.be.revertedWith(
@@ -1211,7 +1216,7 @@ describe("Baal contract", function () {
       );
 
       // manager - success
-      await s6Baal.mintShares([s6.address], [69]);
+      await s6Baal.mintNFTgov([s3.address], [10],[69], ethers.utils.toUtf8Bytes("permission = 6 - manager + governor actions succeed"));
       expect(await sharesToken.balanceOf(s6.address)).to.equal(69);
       await s6Baal.burnShares([s6.address], [69]);
       expect(await sharesToken.balanceOf(s6.address)).to.equal(0);
@@ -1220,7 +1225,7 @@ describe("Baal contract", function () {
       await s6Baal.burnLoot([s6.address], [69]);
       expect(await lootToken.balanceOf(s6.address)).to.equal(0);
 
-      await s6Baal.mintShares([summoner.address], [100]); // cleanup - mint summoner shares so they can submit/sponsor
+      await s6Baal.mintNFTgov([s3.address], [1],[100], ethers.utils.toUtf8Bytes("permission = 6 - manager + governor actions succeed"));// cleanup - mint summoner shares so they can submit/sponsor
 
       // governor - succeed
       await s6Baal.setGovernanceConfig(governanceConfig);
@@ -1686,6 +1691,8 @@ describe("Baal contract", function () {
         shaman.address,
         deploymentConfig.SPONSOR_THRESHOLD
       );
+      await shamanBaal.setupNFTvotes(1,1);
+      await shamanBaal.setupNFTvotes(10,10);
 
       const afterTransferTimestamp = await blockTime();
       const summonerBalance = await sharesToken.balanceOf(summoner.address);
@@ -1732,6 +1739,9 @@ describe("Baal contract", function () {
     });
 
     it("0 transfer - doesnt update delegates", async function () {
+      await shamanBaal.setupNFTvotes(1,1);
+      await shamanBaal.setupNFTvotes(10,10);
+
       const beforeTransferTimestamp = await blockTime();
       await sharesToken.transfer(shaman.address, 0);
       const summonerBalance = await sharesToken.balanceOf(summoner.address);
@@ -1759,6 +1769,7 @@ describe("Baal contract", function () {
 
     it("self transfer - doesnt update delegates", async function () {
       const beforeTransferTimestamp = await blockTime();
+      await shamanBaal.setupNFTvotes(1,1);
       await sharesToken.transfer(summoner.address, 10);
       const summonerBalance = await sharesToken.balanceOf(summoner.address);
       const summonerVotes = await sharesToken.getCurrentVotes(summoner.address);
@@ -1786,6 +1797,8 @@ describe("Baal contract", function () {
         shaman.address,
         deploymentConfig.SPONSOR_THRESHOLD
       );
+      await shamanBaal.setupNFTvotes(1,1);
+      await shamanBaal.setupNFTvotes(10,10);
 
       const summonerBalance = await sharesToken.balanceOf(summoner.address);
       const summonerVotes = await sharesToken.getCurrentVotes(summoner.address);
@@ -1855,6 +1868,9 @@ describe("Baal contract", function () {
         shaman.address
       );
       expect(allowanceAfter).to.equal(0);
+
+      await shamanBaal.setupNFTvotes(1,1);
+      await shamanBaal.setupNFTvotes(10,10);
 
       const afterTransferTimestamp = await blockTime();
       const summonerBalance = await sharesToken.balanceOf(summoner.address);
@@ -1937,6 +1953,8 @@ describe("Baal contract", function () {
 
   describe("erc20 loot - transfer", function () {
     it("sends tokens, not votes", async function () {
+      await shamanBaal.setupNFTvotes(1,1);
+      await shamanBaal.setupNFTvotes(10,10);
       await lootToken.transfer(shaman.address, 500);
       const summonerBalance = await lootToken.balanceOf(summoner.address);
       const summonerVotes = await sharesToken.getCurrentVotes(summoner.address);
@@ -1964,6 +1982,8 @@ describe("Baal contract", function () {
 
   describe("erc20 loot - transferFrom", function () {
     it("sends tokens, not votes", async function () {
+      await shamanBaal.setupNFTvotes(1,1);
+      await shamanBaal.setupNFTvotes(10,10);
       await lootToken.approve(shaman.address, 500);
       await shamanLootToken.transferFrom(summoner.address, shaman.address, 500);
       const summonerBalance = await lootToken.balanceOf(summoner.address);
@@ -2303,7 +2323,7 @@ describe("Baal contract", function () {
     });
 
     it("scenario - increase shares during voting", async function () {
-      await shamanBaal.mintShares([shaman.address], [100]); // add 100 shares for shaman
+      await shamanBaal.mintNFTgov([shaman.address], [10],[100], ethers.utils.toUtf8Bytes("scenario - increase shares during voting")); // add 100 shares for shaman
       await shamanBaal.submitProposal(
         proposal.data,
         proposal.expiration,
@@ -2315,7 +2335,7 @@ describe("Baal contract", function () {
       expect(prop1.maxTotalSharesAndLootAtYesVote).to.equal(
         shares + loot + 100
       );
-      await shamanBaal.mintShares([shaman.address], [100]); // add another 100 shares for shaman
+      await shamanBaal.mintNFTgov([shaman.address], [1],[100], ethers.utils.toUtf8Bytes("scenario - increase shares during voting")); // add another 100 shares for shaman
       await shamanBaal.submitVote(1, yes);
       const prop = await baal.proposals(1);
       expect(prop.yesVotes).to.equal(200); // 100 summoner and 1st 100 from shaman are counted
@@ -2323,7 +2343,7 @@ describe("Baal contract", function () {
     });
 
     it("scenario - decrease shares during voting", async function () {
-      await shamanBaal.mintShares([shaman.address], [100]); // add 100 shares for shaman
+      await shamanBaal.mintNFTgov([shaman.address], [1],[100], ethers.utils.toUtf8Bytes("scenario - decrease shares during voting")); // add 100 shares for shaman
       await shamanBaal.submitProposal(
         proposal.data,
         proposal.expiration,
@@ -2510,6 +2530,7 @@ describe("Baal contract", function () {
         baalGas,
         ethers.utils.id(proposal.details)
       );
+      await baal.connect(justtokenholder).submitVote(1, yes);
 
       await baal.connect(justtokenholder).submitVote(1, yes);
       await moveForwardPeriods(3);
@@ -2706,7 +2727,7 @@ describe("Baal contract", function () {
         ]
       );
 
-      await shamanBaal.mintShares([shaman.address], [900]); // mint 900 shares so summoner has exectly 10% w/ 100 shares
+      await shamanBaal.mintNFTgov([shaman.address], [10],[900], ethers.utils.toUtf8Bytes("edge case - exactly at quorum")); // mint 900 shares so summoner has exectly 10% w/ 100 shares
 
       await baal.connect(justtokenholder).submitProposal(
         proposal.data,
@@ -2742,7 +2763,7 @@ describe("Baal contract", function () {
         ]
       );
 
-      await shamanBaal.mintShares([shaman.address], [901]); // mint 901 shares so summoner has <10% w/ 100 shares
+      await shamanBaal.mintNFTgov([shaman.address], [1],[901], ethers.utils.toUtf8Bytes("edge case - exactly at quorum")); // mint 901 shares so summoner has <10% w/ 100 shares
 
       await baal.connect(justtokenholder).submitProposal(
         proposal.data,
@@ -3674,7 +3695,6 @@ describe("Baal contract - summon baal with current safe", function () {
     Poster = await ethers.getContractFactory("Poster");
     poster = (await Poster.deploy()) as Poster;
   });
-
 
   describe("Baal summoned after safe", function () {
     it("should have the expected address of the module the same as the deployed", async function () {
