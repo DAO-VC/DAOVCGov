@@ -593,7 +593,7 @@ describe("Baal contract", function () {
       //await shamanBaal.mintNFTgov([summoner.address], [1], [69], ethers.utils.toUtf8Bytes("mint shares - recipient has shares"));
 
       const now = await blockTime();
-      expect(await sharesNFToken.balanceOf(shaman.address, 10 )).to.equal(1);
+      expect(await sharesNFToken.balanceOf(shaman.address, 10)).to.equal(1);
       const votes = await sharesNFToken.getCurrentVotes(shaman.address);
       expect(votes).to.equal(10);
 
@@ -607,7 +607,7 @@ describe("Baal contract", function () {
       await shamanBaal.setupNFTvotes(10,10);
       await shamanBaal.mintNFTgov([summoner.address], [10],[1], ethers.utils.toUtf8Bytes("mint shares - recipient has delegate - new shares are also delegated"));
 
-      expect(await sharesToken.balanceOf(summoner.address)).to.equal(10);
+      expect(await sharesNFToken.balanceOf(shaman.address,1)).to.equal(10);
 
       const summonerVotes = await sharesToken.getCurrentVotes(summoner.address);
       expect(summonerVotes).to.equal(0);
@@ -621,9 +621,9 @@ describe("Baal contract", function () {
 
     it("mint shares - zero mint amount - no votes", async function () {
       await shamanBaal.setupNFTvotes(10,10);
-      await shamanBaal.mintNFTgov([shaman.address], [10],[0], ethers.utils.toUtf8Bytes("mint shares - zero mint amount - no votes"));
+      await shamanBaal.mintNFTgov([shaman.address], [10],[10], ethers.utils.toUtf8Bytes("mint shares - zero mint amount - no votes"));
       const now = await blockTime();
-      expect(await sharesToken.balanceOf(shaman.address)).to.equal(10);
+      expect(await sharesNFToken.balanceOf(shaman.address,10)).to.equal(10);
       const votes = await sharesToken.getCurrentVotes(shaman.address);
       expect(votes).to.equal(10);
       const totalShares = await sharesToken.totalSupply();
@@ -644,7 +644,7 @@ describe("Baal contract", function () {
     //TODO: check burns
     it("burn shares", async function () {
       await shamanBaal.burnShares([summoner.address], [1]);
-      expect(await sharesToken.balanceOf(summoner.address)).to.equal(31);
+      expect(await sharesNFToken.balanceOf(summoner.address,1)).to.equal(10);
     });
 
     it("burn shares - require fail - array parity", async function () {
@@ -699,7 +699,7 @@ describe("Baal contract", function () {
       // mint shares for a separate member than the summoner
       await shamanBaal.mintNFTgov([applicant.address], [10],[minting], ethers.utils.toUtf8Bytes("have shaman mint and burn _delegated_ shares"))
 
-      expect(await sharesToken.balanceOf(applicant.address)).to.equal(minting);
+      expect(await sharesNFToken.balanceOf(applicant.address, 10)).to.equal(minting);
       expect(await sharesToken.delegates(applicant.address)).to.equal(
         applicant.address
       );
